@@ -9,6 +9,7 @@ extern "C" void memcpy1(void* dest, void const* src, size_t count);
 extern "C" void memcpy4(void* dest, void const* src, size_t count);
 extern "C" void memcpy8(void* dest, void const* src, size_t count);
 extern "C" void memcpy16(void* dest, void const* src, size_t count);
+extern "C" void memcpy16nt(void* dest, void const* src, size_t count);
 
 void handle_memcpy(void* dest, void const* src, size_t count) {
 	char* c_dest = static_cast<char*>(dest);
@@ -52,6 +53,15 @@ void memcpy16_impl(void* dest, void const* src, size_t count) {
 	memcpy16(dest, src, count);
 }
 
+void memcpy16nt_impl(void* dest, void const* src, size_t count) {
+    while (count && (intptr_t) dest % 16 != 0) {
+        memcpy1(dest, src, 1);
+        dest++;
+        src++;
+        count--;
+    }
+    memcpy16nt(dest, src, count);
+}
 
 const int N = 1024 * 1024 * 124;
 char a[N], b[N];
@@ -86,9 +96,15 @@ int main() {
 	finish = clock();
 	std::cout << (finish - start) / CLOCKS_PER_SEC << " - memcpy16\n";	
 
-	start = clock();
+    start = clock();
+    memcpy16nt_impl(a, b, sizeof(char) * N);
+    finish = clock();
+    std::cout << (finish - start) / CLOCKS_PER_SEC << " - memcpy16nt\n";
+
+    start = clock();
 	memcpy(a, b, sizeof(char) * N);
 	finish = clock();
 	std::cout << (finish - start) / CLOCKS_PER_SEC << " - memcpy built-in\n";
-	return 0;
+
+    return 0;
 }
